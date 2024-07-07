@@ -1,0 +1,89 @@
+#include "FileSystem.h"
+#include <sstream>
+
+FileSystem::FileSystem() : root("root") {}
+
+Directory* FileSystem::getRoot() {
+    return &root;
+}
+
+File* FileSystem::createFile(const std::string& path, const std::string& name) {
+    Directory* dir = getDirectoryFromPath(path);
+    if (dir) {
+        File file(name);
+        dir->addFile(file);
+        return dir->getFile(name);
+    }
+    return nullptr;
+}
+
+Directory* FileSystem::createDirectory(const std::string& path, const std::string& name) {
+    Directory* dir = getDirectoryFromPath(path);
+    if (dir) {
+        Directory subDir(name);
+        dir->addDirectory(subDir);
+        return dir->getDirectory(name);
+    }
+    return nullptr;
+}
+
+File* FileSystem::readFile(const std::string& path) {
+    return getFileFromPath(path);
+}
+
+void FileSystem::writeFile(const std::string& path, const std::vector<char>& data) {
+    File* file = getFileFromPath(path);
+    if (file) {
+        file->write(data);
+    }
+}
+
+void FileSystem::deleteFile(const std::string& path) {
+    Directory* dir = getDirectoryFromPath(path);
+    if (dir) {
+        size_t pos = path.find_last_of('/');
+        if (pos != std::string::npos) {
+            dir->deleteFile(path.substr(pos + 1));
+        }
+    }
+}
+
+void FileSystem::deleteDirectory(const std::string& path) {
+    Directory* dir = getDirectoryFromPath(path);
+    if (dir) {
+        size_t pos = path.find_last_of('/');
+        if (pos != std::string::npos) {
+            dir->deleteDirectory(path.substr(pos + 1));
+        }
+    }
+}
+
+Directory* FileSystem::getDirectoryFromPath(const std::string& path) {
+    // Split the path and traverse the directory structure
+    std::istringstream ss(path);
+    std::string token;
+    Directory* currentDir = &root;
+    while (std::getline(ss, token, '/')) {
+        if (token.empty()) continue;
+        currentDir = currentDir->getDirectory(token);
+        if (!currentDir) return nullptr;
+    }
+    return currentDir;
+}
+
+File* FileSystem::getFileFromPath(const std::string& path) {
+    // Split the path and traverse the directory structure
+    std::istringstream ss(path);
+    std::string token;
+    Directory* currentDir = &root;
+    while (std::getline(ss, token, '/')) {
+        if (token.empty()) continue;
+        size_t pos = token.find_last_of('/');
+        if (pos != std::string::npos) {
+            currentDir = currentDir->getDirectory(token.substr(0, pos));
+            if (!currentDir) return nullptr;
+            return currentDir->getFile(token.substr(pos + 1));
+        }
+    }
+    return nullptr;
+}
